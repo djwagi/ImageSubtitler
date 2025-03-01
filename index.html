@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>图片添加文字工具</title>
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        .section {
+            margin-bottom: 20px;
+        }
+        .section-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #444;
+        }
+        #imagePreview {
+            max-width: 100%;
+            margin-top: 10px;
+            border: 1px dashed #ccc;
+            min-height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #999;
+        }
+        #imagePreview img {
+            max-width: 100%;
+            max-height: 400px;
+            display: none;
+        }
+        #textInput {
+            width: 100%;
+            height: 100px;
+            padding: 8px;
+            box-sizing: border-box;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            resize: vertical;
+        }
+        .button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }
+        .button:hover {
+            background-color: #45a049;
+        }
+        .button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        #resultContainer {
+            margin-top: 20px;
+            text-align: center;
+        }
+        #resultImage {
+            max-width: 100%;
+            max-height: 600px;
+            border: 1px solid #ddd;
+            margin-top: 10px;
+            display: none;
+        }
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+        }
+        .file-input-wrapper input[type=file] {
+            position: absolute;
+            left: 0;
+            top: 0;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>图片添加文字工具</h1>
+    <div class="container">
+        <div class="section">
+            <div class="section-title">1. 选择图片</div>
+            <div class="file-input-wrapper">
+                <button class="button">选择图片</button>
+                <input type="file" id="imageInput" accept="image/*">
+            </div>
+            <div id="imagePreview">预览区域</div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">2. 输入文字（每行将单独显示）</div>
+            <textarea id="textInput" placeholder="请输入要添加的文字，每行文字将单独显示在图片下方"></textarea>
+            <div class="text-settings" style="margin-top: 10px;">
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <div>
+                        <label for="fontSize">字体大小：</label>
+                        <input type="number" id="fontSize" value="24" min="12" max="72" style="width: 60px;">
+                    </div>
+                    <div>
+                        <label for="subtitleHeight">字幕高度：</label>
+                        <input type="number" id="subtitleHeight" value="60" min="30" max="200" step="1" style="width: 60px;">
+                    </div>
+                    <div>
+                        <label for="textColor">文字颜色：</label>
+                        <input type="color" id="textColor" value="#ffffff">
+                    </div>
+                    <div>
+                        <label for="shadowColor">轮廓颜色：</label>
+                        <input type="color" id="shadowColor" value="#000000">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">3. 生成图片</div>
+            <button id="generateBtn" class="button" disabled>生成图片</button>
+        </div>
+
+        <div id="resultContainer">
+            <div class="section-title">生成结果</div>
+            <img id="resultImage" alt="生成的图片">
+            <div>
+                <button id="downloadBtn" class="button" style="display: none;">下载图片</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 获取DOM元素
+        const imageInput = document.getElementById('imageInput');
+        const imagePreview = document.getElementById('imagePreview');
+        const previewImg = document.createElement('img');
+        const textInput = document.getElementById('textInput');
+        const generateBtn = document.getElementById('generateBtn');
+        const resultImage = document.getElementById('resultImage');
+        const downloadBtn = document.getElementById('downloadBtn');
+
+        // 获取文字样式设置元素
+        const fontSizeInput = document.getElementById('fontSize');
+        const subtitleHeightInput = document.getElementById('subtitleHeight');
+        const textColorInput = document.getElementById('textColor');
+        const shadowColorInput = document.getElementById('shadowColor');
+
+        // 添加预览图片到预览区域
+        imagePreview.appendChild(previewImg);
+
+        // 图片上传预览
+        imageInput.addEventListener('change', function(e) {
+            if (e.target.files && e.target.files[0]) {
+                const reader = new FileReader();
+                
+                reader.onload = function(event) {
+                    previewImg.src = event.target.result;
+                    previewImg.style.display = 'block';
+                    imagePreview.textContent = '';
+                    imagePreview.appendChild(previewImg);
+                    
+                    // 启用生成按钮
+                    generateBtn.disabled = false;
+                }
+                
+                reader.readAsDataURL(e.target.files[0]);
+            }
+        });
+
+        // 生成图片
+        generateBtn.addEventListener('click', function() {
+            const text = textInput.value.trim();
+            if (!text) {
+                alert('请输入要添加的文字');
+                return;
+            }
+
+            // 创建Canvas
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            
+            // 设置字体和样式
+            const fontSize = parseInt(fontSizeInput.value);
+            const subtitleHeight = parseInt(subtitleHeightInput.value);
+            const padding = 20;
+            const textColor = textColorInput.value;
+            const shadowColor = shadowColorInput.value;
+            const shadowBlur = 4;
+            const lineSpacing = 5; // 行间距
+            
+            // 分割文本为行
+            const lines = text.split('\n').filter(line => line.trim() !== '');
+            
+            // 计算Canvas尺寸和文本区域
+            const imgWidth = previewImg.naturalWidth;
+            const imgHeight = previewImg.naturalHeight;
+            const textBoxHeight = subtitleHeight;
+            const totalTextHeight = lines.length * textBoxHeight;
+            
+            // 设置新的Canvas尺寸，包括原图和文本区域
+            canvas.width = imgWidth;
+            canvas.height = imgHeight + totalTextHeight;
+            
+            // 绘制原图
+            ctx.drawImage(previewImg, 0, 0, imgWidth, imgHeight);
+            
+            // 获取图片底部区域作为文本背景
+            const bgHeight = textBoxHeight;
+            const bgImageData = ctx.getImageData(0, imgHeight - bgHeight, imgWidth, bgHeight);
+            
+            // 为每行文本创建叠放效果
+            lines.forEach((line, index) => {
+                const y = imgHeight + (index * textBoxHeight);
+                
+                // 绘制背景图像
+                ctx.putImageData(bgImageData, 0, y);
+                
+                // 设置文本样式
+                ctx.fillStyle = textColor;
+                ctx.font = `${fontSize}px 'Microsoft YaHei', sans-serif`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                
+                // 添加文本阴影以增强可读性
+                ctx.shadowColor = shadowColor;
+                ctx.shadowBlur = 4;
+                ctx.shadowOffsetX = 2;
+                ctx.shadowOffsetY = 2;
+                
+                // 绘制文本
+                ctx.fillText(line, canvas.width / 2, y + textBoxHeight / 2);
+                
+                // 重置阴影设置
+                ctx.shadowColor = 'transparent';
+                ctx.shadowBlur = 0;
+                ctx.shadowOffsetX = 0;
+                ctx.shadowOffsetY = 0;
+            });
+            
+            // 显示结果
+            resultImage.src = canvas.toDataURL('image/png');
+            resultImage.style.display = 'block';
+            downloadBtn.style.display = 'inline-block';
+            
+            // 滚动到结果区域
+            resultImage.scrollIntoView({ behavior: 'smooth' });
+        });
+
+        // 下载图片
+        downloadBtn.addEventListener('click', function() {
+            const link = document.createElement('a');
+            link.download = '图片文字合成.png';
+            link.href = resultImage.src;
+            link.click();
+        });
+    </script>
+</body>
+</html>
